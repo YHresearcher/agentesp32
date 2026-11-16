@@ -1,48 +1,164 @@
+import {validateMergedImage, parseChecksum, redactSecrets, classifyLog} from "./diagnostics.mjs";
 const $ = id => document.getElementById(id);
 const repo = "YHresearcher/ModESP32";
-let firmwareUrl = null, manifestUrl = null;
-let port = null, reader = null, serialText = "", reading = false;
 const MAX_LOG = 300000;
-const writeStatus = msg => $("reportStatus").textContent = msg;
-const append = chunk => {
+let firmwareUrl = null, manifestUrl = null, selectedFile = null, validated = false;
+let port = null, reader = null, reading = false, serialText = "";
+let selectionSerial = 0;
+
+function message(text) { $("reportStatus").textContent = text; }
+function append(chunk) {
   serialText = (serialText + chunk).slice(-MAX_LOG);
-  $("log").textContent = serialText;
+  $("log").textContent = serialText || "[No data]";
   $("log").scrollTop = $("log").scrollHeight;
-};
-$("compat").textContent = "serial" in navigator ? "✓ Web Serial khả dụng. Dùng Chrome/Edge và HTTPS." : "⚠ Web Serial chưa khả dụng. Dùng Chrome/Edge trên máy tính, qua HTTPS.";
-$("firmware").addEventListener("change", () => {
-  const file = $("firmware").files[0];
+  const findings = classifyLog(serialText);
+  $("diagnostics").textContent = findings.length ? "Gợi ý: " + findings.map(f => f.code + " – " + f.message).join(" | ") : "Chưa nhận diện được lỗi qua các mẫu log hiện tại.";
+}
+function resetManifest() {
   if (firmwareUrl) URL.revokeObjectURL(firmwareUrl);
   if (manifestUrl) URL.revokeObjectURL(manifestUrl);
   firmwareUrl = null; manifestUrl = null;
-  if (!file) { $("fileStatus").textContent = "Chưa chọn file"; return; }
-  if (!/\.bin$/i.test(file.name) || file.size < 65536 || file.size > 32*1024*1024) {
-    $("fileStatus").textContent = "File không phù hợp: chỉ chọn .bin (64 KiB–32 MiB).";
-    return;
-  }
-  firmwareUrl = URL.createObjectURL(file);
+  validated = false;
+  $("installer").manifest = "about:blank";
+  updateFlashAvailability();
+}
+function updateFlashAvailability() {
+  const ready = validated && $("confirmBoard").checked && $("confirmHardware").checked && "serial" in navigator && window.isSecureContext;
+  $("flashButton").disabled = !ready;
+  $("flashHelp").textContent = ready
+    ? "Firmware đã xác minh. Sẵn sàng mở ESP Web Tools; hãy đóng Serial Monitor trước khi Flash."
+    : "Cần firmware đã xác minh, hai ô xác nhận phần cứng, HTTPS và Web Serial để bật Flash.";
+}
+function hexDigest(buffer) {
+  return Array.from(new Uint8Array(buffer), n => n.toString(16).padStart(2,"0")).join("");
+}
+async function digestSha(bytes) { return hexDigest(await crypto.subtle.digest("SHA-256", bytes)); }
+function installLocalManifest(binary, request, label, sha) {
+  if (request !== selectionSerial) return;
+  firmwareUrl = URL.createObjectURL(new Blob([binary], {type:"application/octet-stream"}));
   const manifest = {
     name: "ModESP32 ESP32-S3 DIY",
-    version: "development",
+    version: label,
     new_install_prompt_erase: false,
-    new_install_improv_wait_time: 0,
-    builds: [{chipFamily: "ESP32-S3", parts: [{path: firmwareUrl, offset: 0}]}]
+    builds: [{chipFamily:"ESP32-S3",improv:false,parts:[{path:firmwareUrl,offset:0}]}]
   };
-  manifestUrl = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:"application/json"}));
-  $("installer").setAttribute("manifest", manifestUrl);
-  $("fileStatus").textContent = file.name+" · "+(file.size/1048576).toFixed(2)+" MiB — chuẩn bị để flash. Chỉ sử dụng merged-binary.bin đúng board.";
+  manifestUrl = URL.createObjectURL(new Blob([JSON.stringify(manifest)],{type:"application/json"}));
+  $("installer").manifest = manifestUrl;
+  validated = true;
+  $("firmwareHash").textContent = "SHA-256: " + sha;
+  updateFlashAvailability();
+}
+$("compat").textContent = "serial" in navigator && window.isSecureContext
+  ? "✓ Web Serial sẵn sàng trên HTTPS. Hãy đóng các ứng dụng đang giữ cổng USB."
+  : "⚠ Trình duyệt không có Web Serial hoặc không chạy trên HTTPS; dùng Chrome/Edge desktop.";
+for (const id of ["confirmBoard","confirmHardware"]) $(id).addEventListener("change", updateFlashAvailability);
+
+function setSource(mode) {
+  ++selectionSerial;
+  resetManifest();
+  const manual = mode === "manual";
+  $("manualFirmware").hidden = !manual;
+  $("autoFirmwareStatus").hidden = manual;
+  $("refreshFirmware").disabled = manual;
+  $("fileStatus").textContent = manual ? "Chọn merged-binary.bin từ máy" : "Đang kiểm tra bản Development mới nhất…";
+  $("firmwareHash").textContent = "";
+  if (!manual) void loadAutoFirmware();
+}
+$("firmwareSource").addEventListener("change", e => setSource(e.target.value));
+$("refreshFirmware").addEventListener("click", () => {
+  if ($("firmwareSource").value !== "auto") return;
+  ++selectionSerial;
+  resetManifest();
+  void loadAutoFirmware();
 });
+for(const id of ["firmware","checksum"]) $(id).addEventListener("change", () => {
+  if ($("firmwareSource").value === "manual") void validateSelectedFile();
+});
+
+async function loadAutoFirmware() {
+  const request = ++selectionSerial;
+  resetManifest();
+  $("autoFirmwareStatus").textContent = "Đang đọc firmware Development từ GitHub…";
+  $("fileStatus").textContent = "Đang xác minh bản Development…";
+  try {
+    const response = await fetch("/api/firmware/latest",{cache:"no-store"});
+    if (!response.ok) throw Error("API firmware HTTP "+response.status);
+    const meta = await response.json();
+    if (request !== selectionSerial) return;
+    if (!meta.available) throw Error("Chưa có bản Development được xuất bản.");
+    if (meta.channel !== "development" || meta.tested !== false ||
+        meta.board !== "mod-esp32s3-st7789v-28" || meta.chipFamily !== "ESP32-S3" ||
+        !/^mod-esp32s3-dev-[0-9a-f]{12}$/.test(meta.tag) ||
+        !/^[0-9a-f]{64}$/.test(meta.sha256) ||
+        !Number.isSafeInteger(meta.size) || meta.size < 1048576 || meta.size > 16777216 ||
+        meta.firmwareUrl !== "/api/firmware/binary?tag="+encodeURIComponent(meta.tag)) {
+      throw Error("Metadata Development không hợp lệ; không flash.");
+    }
+    $("autoFirmwareStatus").textContent = "Đã tìm thấy "+meta.tag+" · "+(meta.size/1048576).toFixed(2)+" MiB. Đang tải và xác minh SHA-256…";
+    const result = await fetch(meta.firmwareUrl,{cache:"no-store"});
+    if (!result.ok) throw Error("Tải firmware thất bại: HTTP "+result.status);
+    if (result.redirected && new URL(result.url).origin !== location.origin) throw Error("Firmware bị chuyển tới host khác ngoài Cloudflare.");
+    const binary = await result.arrayBuffer();
+    if (request !== selectionSerial) return;
+    const issues = validateMergedImage(new Uint8Array(binary.slice(0,32)),"merged-binary.bin",binary.byteLength);
+    if(issues.length) throw Error(issues.join(" "));
+    if (binary.byteLength !== meta.size) throw Error("Kích thước firmware không khớp metadata.");
+    const sha = await digestSha(binary);
+    if (request !== selectionSerial) return;
+    if (sha !== meta.sha256) throw Error("SHA-256 firmware không khớp release; đã chặn Flash.");
+    installLocalManifest(binary,request,meta.tag,sha);
+    $("autoFirmwareStatus").textContent = "✓ Development "+meta.tag+" · SHA-256 khớp · Chưa kiểm thử trên phần cứng thật.";
+    $("fileStatus").textContent = "Firmware Development đã sẵn sàng. Không cần tải ZIP thủ công.";
+  } catch(e) {
+    if(request !== selectionSerial)return;
+    resetManifest();
+    $("autoFirmwareStatus").textContent = "Không lấy được firmware tự động: "+(e?.message||String(e));
+    $("fileStatus").textContent = "Bạn có thể chuyển sang Thủ công để dùng artifact GitHub Actions.";
+  }
+}
+async function validateSelectedFile() {
+  const request=++selectionSerial;
+  resetManifest();
+  selectedFile=$("firmware").files[0] ?? null;
+  $("firmwareHash").textContent="";
+  if(!selectedFile){$("fileStatus").textContent="Chưa chọn firmware";return;}
+  $("fileStatus").textContent="Đang xác minh file firmware...";
+  try {
+    const header=new Uint8Array(await selectedFile.slice(0,32).arrayBuffer());
+    const issues=validateMergedImage(header,selectedFile.name,selectedFile.size);
+    if(issues.length)throw Error(issues.join(" "));
+    const binary=await selectedFile.arrayBuffer();
+    const sha=await digestSha(binary);
+    if(request!==selectionSerial)return;
+    const checksum=$("checksum").files[0];
+    if(checksum){
+      const expected=parseChecksum(await checksum.text());
+      if(!expected)throw Error("SHA256SUMS không có digest hợp lệ.");
+      if(expected!==sha)throw Error("SHA-256 KHÔNG khớp; đã chặn Flash.");
+    }
+    if(request!==selectionSerial)return;
+    installLocalManifest(binary,request,"manual-development",sha);
+    $("fileStatus").textContent=selectedFile.name+" · "+(selectedFile.size/1048576).toFixed(2)+" MiB · "+(checksum?"SHA-256 verified":"chưa đối chiếu với SHA256SUMS");
+  }catch(e){
+    if(request!==selectionSerial)return;
+    resetManifest();
+    $("fileStatus").textContent="Không thể flash: "+(e?.message||String(e));
+  }
+}
+void loadAutoFirmware();
+
 $("connect").addEventListener("click", async () => {
-  if (!("serial" in navigator)) return writeStatus("Web Serial chưa được hỗ trợ.");
+  if (!("serial" in navigator) || !window.isSecureContext) return message("Cần Web Serial và HTTPS.");
   if (port) return;
   try {
     port = await navigator.serial.requestPort();
     await port.open({baudRate: Number($("baud").value)});
-    $("serialState").textContent = "Đang kết nối";
-    $("connect").disabled = true; $("disconnect").disabled = false;
+    $("serialState").textContent = "Đã kết nối";
+    $("connect").disabled = true;
+    $("disconnect").disabled = false;
     reading = true;
     const decoder = new TextDecoder();
-    while (port?.readable && reading) {
+    while (reading && port.readable) {
       reader = port.readable.getReader();
       try {
         while (reading) {
@@ -50,45 +166,75 @@ $("connect").addEventListener("click", async () => {
           if (done) break;
           if (value) append(decoder.decode(value, {stream:true}));
         }
-      } catch(e) { if (reading) append("\n[SERIAL ERROR] "+String(e)+"\n"); }
-      finally { reader.releaseLock(); reader = null; }
+      } catch (e) {
+        if (reading) append("\n[SERIAL ERROR] " + String(e) + "\n");
+      } finally {
+        reader.releaseLock();
+        reader = null;
+      }
       if (!reading) break;
+      // Avoid a tight loop when the serial readable stream closes.
+      if (!port.readable) break;
     }
-  } catch(e) {
-    if (e.name !== "NotFoundError") append("\n[CONNECT ERROR] "+String(e)+"\n");
-  } finally { await closeSerial(); }
+  } catch (e) {
+    if (e.name !== "NotFoundError") append("\n[CONNECT ERROR] " + String(e) + "\n");
+  } finally {
+    await closeSerial();
+  }
 });
 async function closeSerial() {
   reading = false;
   try { if (reader) await reader.cancel(); } catch {}
   try { if (port) await port.close(); } catch {}
   port = null;
-  $("connect").disabled = false; $("disconnect").disabled = true;
+  $("connect").disabled = false;
+  $("disconnect").disabled = true;
   $("serialState").textContent = "Đã ngắt";
 }
-$("disconnect").addEventListener("click", () => { reading = false; if (reader) reader.cancel().catch(()=>{}); });
-$("clear").addEventListener("click", () => { serialText=""; $("log").textContent="[ModESP32] Đã xóa log.\n"; });
-function clean(s) {
-  return s
-    .replace(/(Authorization\s*[:=]\s*(?:Bearer\s+)?)[^\s,;]+/gi,"$1[REDACTED]")
-    .replace(/((?:api[_-]?key|access[_-]?token|refresh[_-]?token|password|passwd|wifi[_-]?pass|secret)\s*[:=]\s*["']?)[^\s,"';}]+/gi,"$1[REDACTED]")
-    .replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/gi,"$1[REDACTED]@");
-}
+$("disconnect").addEventListener("click", () => {
+  reading = false;
+  if (reader) reader.cancel().catch(() => {});
+});
+$("clear").addEventListener("click", () => {
+  serialText = "";
+  $("log").textContent = "[ModESP32] Đã xóa log.\n";
+  $("diagnostics").textContent = "Chưa có log để phân tích.";
+});
 $("download").addEventListener("click", () => {
-  const blob = new Blob([serialText || "[No serial output]\n"], {type:"text/plain;charset=utf-8"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); a.href=url;a.download="modesp32-serial-"+new Date().toISOString().replace(/[:.]/g,"-")+".txt";a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
-  writeStatus("Log đã tải về máy. Hãy kiểm tra bí mật trước khi chia sẻ.");
+  const url = URL.createObjectURL(new Blob([serialText || "[No serial output]\n"], {type:"text/plain;charset=utf-8"}));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "modesp32-serial-" + new Date().toISOString().replace(/[:.]/g,"-") + ".txt";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url),1000);
+  message("Đã tải log gốc về máy; file có thể chứa dữ liệu nhạy cảm.");
+});
+function updateShare() { $("issue").disabled = !$("confirmShare").checked || !$("reportPreview").value.trim(); }
+$("confirmShare").addEventListener("change", updateShare);
+$("reportPreview").addEventListener("input", () => { $("confirmShare").checked = false; updateShare(); });
+$("prepare").addEventListener("click", () => {
+  const findings = classifyLog(serialText);
+  const summary = findings.length ? findings.map(x => "- " + x.code + ": " + x.message).join("\n") : "- Chưa phát hiện mẫu lỗi rõ ràng";
+  $("reportPreview").value = "Device: ESP32-S3 N16R8; LCD: ST7789V; Audio: I2S/ MAX98357A\n\nFindings:\n" + summary + "\n\nSerial excerpt (review manually):\n" + redactSecrets(serialText).slice(-2200);
+  $("confirmShare").checked = false;
+  updateShare();
+  message("Đã tạo bản xem trước. Hãy xóa token, SSID, nội dung riêng tư nếu vẫn còn.");
 });
 $("copy").addEventListener("click", async () => {
-  try { await navigator.clipboard.writeText(clean(serialText)); writeStatus("Đã copy log đã lọc cơ bản. Vẫn cần kiểm tra thủ công dữ liệu nhạy cảm."); }
-  catch(e) { writeStatus("Không copy được: "+e.message); }
+  const val = $("reportPreview").value.trim();
+  if (!val) return message("Tạo bản xem trước trước khi copy.");
+  try {
+    await navigator.clipboard.writeText(val);
+    message("Đã copy bản xem trước. Chỉ chia sẻ sau khi đã tự kiểm tra dữ liệu.");
+  } catch (e) { message("Không copy được: " + e.message); }
 });
 $("issue").addEventListener("click", () => {
-  const log = clean(serialText).slice(-1800);
-  const body = "## Hardware\nESP32-S3 N16R8 / ST7789V / I2S mic / MAX98357A\n\n## Symptoms\n(Mô tả vấn đề và cách tái hiện)\n\n## Serial log (redacted, excerpt)\n```text\n"+(log||"(Chưa có log; hãy chụp lại Serial Monitor)")+"\n```\n\n⚠ Kiểm tra và xóa thông tin riêng tư trước khi Submit. Đính kèm log đầy đủ nếu phù hợp.";
-  const url = "https://github.com/"+repo+"/issues/new?title="+encodeURIComponent("[ModESP32 S3] Diagnostic report")+"&body="+encodeURIComponent(body);
-  window.open(url,"_blank","noopener,noreferrer");
-  writeStatus("Đã mở bản nháp GitHub Issue. Chỉ khi bạn bấm Submit new issue, log mới được gửi tới GitHub.");
+  if ($("issue").disabled) return;
+  const text = $("reportPreview").value.slice(0,2700);
+  const url = "https://github.com/" + repo + "/issues/new?title=" +
+    encodeURIComponent("[ModESP32 S3] Diagnostic report") + "&body=" + encodeURIComponent(
+      "## Symptoms\n(Ghi triệu chứng và cách tái hiện)\n\n## Diagnostics (user reviewed)\n\n" + text +
+      "\n\nPlease remove any sensitive device or personal details before publishing.");
+  window.open(url, "_blank", "noopener,noreferrer");
+  message("Đã mở bản nháp GitHub Issue. Chỉ khi bạn xác nhận Submit trên GitHub mới có dữ liệu được đăng.");
 });
