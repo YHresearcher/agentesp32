@@ -41,6 +41,15 @@ export function extractTouchFivePoints(log){
  return result;
 }
 
+export function fillTouchPointsFromLog(log){
+ const values=extractTouchFivePoints(log);
+ let count=0;
+ for(let i=0;i<5;i++){
+  const el=document.getElementById(TOUCH_POINT_IDS[i]);
+  if(el && !el.value && values[i]){el.value=values[i].x+","+values[i].y;count++;}
+ }
+ return count;
+}
 export function setupTouchGuide(){
  const rows=document.getElementById("touchWiringRows");
  const diagram=document.getElementById("touchDiagram");
@@ -57,13 +66,6 @@ export function setupTouchGuide(){
  const getValues=()=>TOUCH_POINT_IDS.map(id=>parseXY(document.getElementById(id).value));
  const analysis=document.getElementById("touchAnalysis");
  document.getElementById("touchAnalyze").addEventListener("click",()=>{analysis.textContent=analyzeFivePoints(getValues()).text;});
- window.__touchFillFromLog=(log)=>{
-  const values=extractTouchFivePoints(log);
-  for(let i=0;i<5;i++){
-   const el=document.getElementById(TOUCH_POINT_IDS[i]);
-   if(!el.value && values[i])el.value=values[i].x+","+values[i].y;
-  }
- };
  document.getElementById("touchCopy").addEventListener("click",async()=>{
   const result=analyzeFivePoints(getValues());
   const text=["ModESP32 touch diagnostic (unverified controller)",...TOUCH_POINT_IDS.map((id,i)=>id+": "+(document.getElementById(id).value||"N/A")),result.text].join("\n");
