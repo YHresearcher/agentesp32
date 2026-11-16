@@ -10,3 +10,28 @@ textarea:focus-visible,button:focus-visible,input:focus-visible,select:focus-vis
 #diagnostics{white-space:pre-wrap}
 
 .auto-firmware{padding:12px 14px;background:#0d1b2c;border:1px solid #36506e;border-radius:12px;margin:12px 0 18px}.auto-firmware label{margin:0 0 8px}.auto-firmware select{margin-bottom:12px}.auto-firmware .status{margin:12px 0}.auto-firmware .small{margin-bottom:0}#manualFirmware[hidden],#autoFirmwareStatus[hidden]{display:none}#refreshFirmware:disabled{opacity:.45}
+
+
+/* Display profiles + accessible Wiring Guide */
+.tabnav{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px}
+.tabnav .tab{background:#14273f;color:#b9d4ef;flex:1;min-width:170px}
+.tabnav .tab.active{background:#225b9f;color:#fff;border-color:#78b6fa;font-weight:750}
+.display-choice{padding:16px 22px;margin-bottom:18px}
+.display-choice label{margin:0 0 8px}
+.display-choice select{margin:0}
+.display-choice .small{margin:9px 0 0}
+.tabpanel[hidden]{display:none!important}
+.wiring-grid{display:grid;grid-template-columns:minmax(240px,0.85fr) minmax(340px,1.15fr);gap:20px}
+.wiring-grid h3{font-size:16px}
+.wiring-diagram{border:1px solid #3b5577;border-radius:12px;background:#071525;padding:16px;color:#cce8ff;font:12px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace}
+.wiring-heading{font-size:13px;font-weight:750;color:#a9d4ff;margin-bottom:10px;line-height:1.6}
+.wiring-line{display:grid;grid-template-columns:1fr 40px 1.45fr;gap:8px;align-items:center;border-bottom:1px solid #1f334c;padding:7px 0}
+.wiring-connector{text-align:center;color:#63d6f5}
+.table-scroll{overflow:auto}
+table{border-collapse:collapse;width:100%;min-width:440px;font-size:13px}
+th,td{border-bottom:1px solid #2f4764;text-align:left;padding:10px 8px;vertical-align:top;line-height:1.5}
+th{color:#a9d4ff}
+td:nth-child(2){white-space:nowrap;font-weight:700;color:#e1f1ff}
+.troubleshoot{padding-left:21px;line-height:1.7;color:#d1dfef}
+.troubleshoot li{margin-bottom:10px}
+@media(max-width:760px){.wiring-grid{grid-template-columns:1fr}.tabnav .tab{min-width:110px;flex:1 1 auto}.display-choice{padding:16px}.wiring-diagram{overflow-x:auto}}
