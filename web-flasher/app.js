@@ -1,10 +1,12 @@
 import {validateMergedImage, parseChecksum, redactSecrets, classifyLog} from "./diagnostics.mjs";
+import {setupWiringUI, DISPLAYS} from "./wiring-guide.mjs";
 const $ = id => document.getElementById(id);
 const repo = "YHresearcher/ModESP32";
 const MAX_LOG = 300000;
 let firmwareUrl = null, manifestUrl = null, selectedFile = null, validated = false;
 let port = null, reader = null, reading = false, serialText = "";
 let selectionSerial = 0;
+let currentDisplay = "st7789v";
 
 function message(text) { $("reportStatus").textContent = text; }
 function append(chunk) {
@@ -81,14 +83,15 @@ async function loadAutoFirmware() {
   $("autoFirmwareStatus").textContent = "Đang đọc firmware Development từ GitHub…";
   $("fileStatus").textContent = "Đang xác minh bản Development…";
   try {
-    const response = await fetch("/api/firmware/latest",{cache:"no-store"});
+    const response = await fetch("/api/firmware/latest?display="+encodeURIComponent(currentDisplay),{cache:"no-store"});
     if (!response.ok) throw Error("API firmware HTTP "+response.status);
     const meta = await response.json();
     if (request !== selectionSerial) return;
     if (!meta.available) throw Error("Chưa có bản Development được xuất bản.");
     if (meta.channel !== "development" || meta.tested !== false ||
-        meta.board !== "mod-esp32s3-st7789v-28" || meta.chipFamily !== "ESP32-S3" ||
-        !/^mod-esp32s3-dev-[0-9a-f]{12}$/.test(meta.tag) ||
+        meta.board !== DISPLAYS[currentDisplay].board || meta.chipFamily !== "ESP32-S3" ||
+        meta.display !== currentDisplay ||
+        !(currentDisplay === "st7789v" ? /^mod-esp32s3-dev-[0-9a-f]{12}$/ : /^mod-esp32s3-ili9341-dev-[0-9a-f]{12}$/).test(meta.tag) ||
         !/^[0-9a-f]{64}$/.test(meta.sha256) ||
         !Number.isSafeInteger(meta.size) || meta.size < 1048576 || meta.size > 16777216 ||
         meta.firmwareUrl !== "/api/firmware/binary?tag="+encodeURIComponent(meta.tag)) {
@@ -112,7 +115,7 @@ async function loadAutoFirmware() {
   } catch(e) {
     if(request !== selectionSerial)return;
     resetManifest();
-    $("autoFirmwareStatus").textContent = "Không lấy được firmware tự động: "+(e?.message||String(e));
+    $("autoFirmwareStatus").textContent = "Chưa có firmware "+DISPLAYS[currentDisplay].label+" hợp lệ: "+(e?.message||String(e))+" · Không thể Flash bản của màn hình khác.";
     $("fileStatus").textContent = "Bạn có thể chuyển sang Thủ công để dùng artifact GitHub Actions.";
   }
 }
@@ -145,7 +148,22 @@ async function validateSelectedFile() {
     $("fileStatus").textContent="Không thể flash: "+(e?.message||String(e));
   }
 }
-void loadAutoFirmware();
+setupWiringUI({onDisplayChange(display) {
+  currentDisplay = display;
+  $("confirmBoard").checked = false;
+  $("confirmHardware").checked = false;
+  if ($("firmwareSource").value === "auto") {
+    ++selectionSerial;
+    resetManifest();
+    void loadAutoFirmware();
+  } else {
+    ++selectionSerial;
+    resetManifest();
+    $("fileStatus").textContent = "Đã đổi loại màn hình. Hãy chọn lại .bin đúng "+DISPLAYS[display].board+" và kiểm tra checksum.";
+    $("firmware").value = "";
+    $("checksum").value = "";
+  }
+}});
 
 $("connect").addEventListener("click", async () => {
   if (!("serial" in navigator) || !window.isSecureContext) return message("Cần Web Serial và HTTPS.");
@@ -215,7 +233,7 @@ $("reportPreview").addEventListener("input", () => { $("confirmShare").checked =
 $("prepare").addEventListener("click", () => {
   const findings = classifyLog(serialText);
   const summary = findings.length ? findings.map(x => "- " + x.code + ": " + x.message).join("\n") : "- Chưa phát hiện mẫu lỗi rõ ràng";
-  $("reportPreview").value = "Device: ESP32-S3 N16R8; LCD: ST7789V; Audio: I2S/ MAX98357A\n\nFindings:\n" + summary + "\n\nSerial excerpt (review manually):\n" + redactSecrets(serialText).slice(-2200);
+  $("reportPreview").value = "Device: ESP32-S3 N16R8; LCD: "+DISPLAYS[currentDisplay].label+"; Audio: I2S/ MAX98357A\n\nFindings:\n" + summary + "\n\nSerial excerpt (review manually):\n" + redactSecrets(serialText).slice(-2200);
   $("confirmShare").checked = false;
   updateShare();
   message("Đã tạo bản xem trước. Hãy xóa token, SSID, nội dung riêng tư nếu vẫn còn.");
