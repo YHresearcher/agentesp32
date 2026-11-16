@@ -1,5 +1,6 @@
 // Provisional GPIO assignment for custom ModESP32 2.8" SPI builds.
 // Never infer power/backlight voltage from GPIO or display controller name.
+import {wireRows} from "./audio-wiring.mjs";
 export const DISPLAYS=Object.freeze({
  st7789v:{label:"ST7789V",board:"mod-esp32s3-st7789v-28"},
  ili9341:{label:"ILI9341",board:"mod-esp32s3-ili9341-28"}
@@ -20,6 +21,15 @@ export function setupWiringUI({onDisplayChange}){
  const rows=document.getElementById("wiringRows");
  const diagram=document.getElementById("wiringDiagram");
  const tabs=[...document.querySelectorAll(".tabnav .tab")];
+ for(const [kind,id] of [["microphone","micWiringRows"],["amplifier","speakerWiringRows"]]){
+  const body=document.getElementById(id);
+  body.replaceChildren();
+  for(const cells of wireRows(kind)){
+   const tr=document.createElement("tr");
+   for(const value of cells){const td=document.createElement("td");td.textContent=value;tr.appendChild(td);}
+   body.appendChild(tr);
+  }
+ }
  function showTab(name){
   for(const [tab,id] of [["flash","flashTab"],["wiring","wiringTab"],["serial","serialTab"]]){
    document.getElementById(id).hidden=tab!==name;
