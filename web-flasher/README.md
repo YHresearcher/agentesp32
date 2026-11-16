@@ -1,50 +1,70 @@
-# ModESP32 Firmware Center
+# ModESP32 Firmware Center · One-Click Development Flash
 
-Static Web Serial / ESP Web Tools website for **ESP32-S3 N16R8 with ST7789V 240x320**, I2S microphone and MAX98357A audio amplifier. Initial firmware remains experimental.
+Production URL: https://agentesp32.hlthanh1992.workers.dev
 
-## Features
+## How it works
 
-1. Flash a **locally selected** GitHub Actions `merged-binary.bin` through [ESP Web Tools](https://esphome.github.io/esp-web-tools/). The browser generates a temporary manifest at runtime, with the ESP32-S3 chip family and flash offset 0. This is a **merged image**, not an application-only BIN.
-2. Open Serial Monitor at 115200 baud, observe boot logs after pressing RESET, download text logs and copy logs after basic secret redaction.
-3. Create a **draft** GitHub Issue containing a short redacted excerpt. Only the user's explicit submission in GitHub makes the issue visible. **Never automatically upload logs.**
+GitHub Actions builds only the `mod-esp32s3-st7789v-28` board (ESP-IDF 6.1).
+After a successful build it uploads the usual GitHub Actions artifact **and** publishes a uniquely tagged, immutable **Development prerelease**, for example `mod-esp32s3-dev-0123456789ab`, with:
 
-### Build firmware in GitHub Actions
+- `merged-binary.bin` (whole ESP32-S3 flash image at offset 0)
+- `SHA256SUMS` (SHA-256 for the image)
 
-From `YHresearcher/ModESP32`, open **Actions → ModESP32 S3 Firmware (Web Flash) → Run workflow**.
-When the job succeeds, download artifact `mod-esp32s3-st7789v-28-<sha>` and unzip it. Choose **merged-binary.bin** in the website.
+Each release is marked **experimental**, never Stable or Latest Tested. Older prereleases remain available for diagnostics and rollback. There is no automatic OTA update.
 
-This dedicated workflow builds only the custom board, avoiding hundreds of unrelated upstream variants. It does **not** deploy or release untested firmware to the public automatically.
+Cloudflare Worker (source: `web-flasher/_worker.js`) serves same-origin endpoints:
 
-### Deploy to Cloudflare Pages (preferred)
+- `GET /api/firmware/latest`: newest matching non-draft Development prerelease, plus expected SHA-256, board, chip, tag and `firmwareUrl`.
+- `GET /api/firmware/binary?tag=mod-esp32s3-dev-<12 lowercase hex>`: streams only the listed firmware asset from the exact GitHub release; arbitrary URLs and other tags are not accepted.
 
-Connect GitHub repository `YHresearcher/ModESP32` as a Pages project:
+The website fetches both through the same origin, downloads the firmware into browser memory, verifies ESP image header, size and SHA-256, then gives ESP Web Tools a temporary blob manifest. This is a **user-initiated USB flash**: the browser must have permission to open the device. No file download is required in auto mode. The site retains manual firmware selection as an offline/failure fallback.
 
-- Production branch: `main`.
-- Framework preset: `None`.
-- Root directory: `web-flasher`.
-- Build command: leave empty (or `exit 0`).
-- Build output directory: `.` (the root directory shown above).
-- Enable HTTPS (Cloudflare's `pages.dev` domain already uses HTTPS).
+## Deploy the Worker to the existing workers.dev website
 
-Alternative: Vercel static site with **Root Directory** `web-flasher` and no build command.
+The GitHub commit does **not** itself prove Cloudflare was deployed. To activate the API, deploy **the Worker entrypoint and static assets together**:
 
-No GitHub personal access token or Cloudflare API token needs to be stored in the website.
+- Wrangler project root: `web-flasher/`
+- Config: `web-flasher/wrangler.jsonc`
+- Worker name: `agentesp32` (check this matches your existing Cloudflare Worker before deploying)
+- Worker module: `_worker.js`
+- Static assets: `./`, binding `ASSETS` (the Worker serves the frontend via `env.ASSETS.fetch`)
+- CLI in a checkout where Wrangler is installed: `cd web-flasher && npx wrangler deploy`
 
-### Flashing instructions
+**Important:** Deploying to an existing Worker named `agentesp32` can replace that Worker's current script. Back up its Cloudflare configuration and confirm its bindings/routes before the first deploy. The provided Wrangler config is designed for a static site plus API; do not overwrite unrelated configuration.
 
-Use a computer with **Chrome or Microsoft Edge**, connected over a data-capable USB cable. Close Arduino Serial Monitor, ESP-IDF monitor, and other apps that might hold the port. Open the HTTPS website, select the firmware artifact's merged-binary.bin, click *Connect & Flash Firmware*, select the correct device port, then follow ESP Web Tools prompts. A factory flash may affect stored settings; keep backups. The site never silently erases NVS.
+For Cloudflare **Pages** (rather than Workers), `_worker.js` is also supported in Pages advanced mode. If the site uses a static-only deployment without running the Worker script, the UI will show that automatic firmware is unavailable and permit manual selection.
 
-### Logs
+## Flash procedure
 
-After flashing, exit the flash dialog / release the COM port before opening the integrated serial monitor. Select 115200 baud, press RESET on the ESP32, and watch boot logs. Click *Download log*, or *Prepare GitHub Issue* to open an editable Issue draft. Its summary may be truncated to 1800 characters because of URL limits. For a full trace, download a .txt file and attach it manually.
+1. Ensure that the firmware workflow finished **Build + Publish Development** successfully and that the Cloudflare deployment serves `/api/firmware/latest`.
+2. Open the HTTPS website on Chrome or Edge desktop. Select **Development – latest from GitHub**. It should show the prerelease tag, size, and SHA256 verified.
+3. Verify hardware supply, speaker wiring, chip, GPIO and backups. Mark both confirmation checkboxes.
+4. Connect ESP32-S3 by USB, click **Connect & Flash Firmware**, pick its serial device and follow the prompts.
+5. Close flash dialog, open Serial Monitor, press RESET and inspect logs. No logs are uploaded automatically.
 
-The client applies **only basic** redaction for common keys. Logs may still contain IP addresses, MAC addresses, SSIDs, transcripts, tokens or other private data. **Review manually** before posting a public issue. Issues are public on a public repository. If private diagnostics are needed, do not submit through GitHub Issues.
+In Manual mode, get `merged-binary.bin` and `SHA256SUMS` from the **same successful workflow artifact**. SHA-256 verification against a user-supplied checksum doesn't independently prove the files are authentic. The auto mode obtains the expected checksum from the GitHub prerelease through the Worker.
 
-### Known MVP limits
+## Troubleshooting
 
-- Flash and console require a compatible browser and HTTPS; do not work directly from a headless server.
-- Flashing and Serial Monitor cannot use the same serial port simultaneously.
-- Touch controller, LCD backlight, pin mappings, microphone IC and power requirements are not yet hardware validated.
-- Current site accepts a local firmware binary, not a remotely published firmware download.
-- No central log storage or dashboard; user-submitted GitHub Issues are the audit record.
-- If ESP Web Tools does not accept a locally generated blob URL for the firmware in a particular browser, use [ESP Web Tools official documentation](https://esphome.github.io/esp-web-tools/) to troubleshoot and consider a hosted, immutable manifest/firmware artifact in a future iteration.
+- **No published Development firmware:** workflow may still be building, or the Publish Development step failed. Go to Actions and inspect that job. The previous successful Actions artifact is still accessible from GitHub.
+- **API firmware HTTP 404 / HTML response:** the Cloudflare Worker entrypoint likely has not been deployed; static-only hosting is insufficient. Use Manual mode until it is deployed.
+- **API HTTP 502:** GitHub API or release asset lookup failed, or unauthenticated API rate limit. Inspect Cloudflare Worker logs. Retry later or use Manual mode.
+- **SHA-256 mismatch:** Flash is blocked. Do not bypass the validation.
+- **ESP Web Tools fails:** use HTTPS and compatible browser, a data USB cable, the correct port and release the Serial Monitor's port first. Board flash success does not prove the attached LCD/audio wiring is correct.
+
+## Security and scope
+
+- A GitHub token is used only **inside GitHub Actions** for release publishing. No GitHub/Cloudflare token is embedded in the site.
+- Only approved prerelease tags and expected asset names are proxied. The API serves firmware publicly and cannot authenticate device ownership.
+- Serial Monitor logs remain local until the user explicitly submits a GitHub Issue (which is public). Redaction is best-effort; review before sharing.
+- The LCD backlight and resistive touch are not enabled in this experimental board firmware; the microphone chip and physical GPIO/voltage compatibility still need testing.
+- **Latest Tested** channel must NOT be presented until a verified, hardware-tested firmware is explicitly promoted.
+- No dynamic GPIO or Multi-LLM features were added in this change.
+
+## CI
+
+- `.github/workflows/mod-esp32s3-firmware.yml`: build and publish immutable Development release on `main`.
+- `.github/workflows/web-flasher-tests.yml`: JavaScript and Worker API unit tests.
+- `.github/workflows/build.yml`: broad upstream board CI; skips web-only commits.
+
+<!-- Cloudflare Workers Builds: trigger a fresh main-branch deployment after configuring root directory web-flasher. -->
