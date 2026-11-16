@@ -14,7 +14,7 @@
   <section class="hero"><p class="eyebrow">DIY AI VOICE ASSISTANT</p><h1>Flash firmware &amp; chẩn đoán thiết bị</h1><p>ST7789V / ILI9341 2.8” · 240 × 320 · I²S Microphone · MAX98357A · XiaoZhi</p><div id="compat" class="notice">Đang kiểm tra Web Serial…</div></section>
   <nav class="tabnav" aria-label="Các phần hướng dẫn">
   <button type="button" class="tab active" data-tab="flash" aria-selected="true">⚡ Flash Firmware</button>
-  <button type="button" class="tab" data-tab="wiring" aria-selected="false">🔌 Hướng dẫn đấu nối 2.8"</button>
+  <button type="button" class="tab" data-tab="wiring" aria-selected="false">🔌 Hướng dẫn kết nối</button>
   <button type="button" class="tab" data-tab="serial" aria-selected="false">🧪 Serial &amp; Chẩn đoán</button>
 </nav>
 <div class="display-choice panel">
@@ -71,7 +71,35 @@
   <li><strong>Khởi động lại liên tục:</strong> ngắt nguồn, kiểm tra chập dây, dòng cấp và các thông báo lỗi trong Serial Monitor.</li>
  </ol>
  <p class="small">Touch XPT2046 (nếu module có): T_CS dự kiến GPIO9, T_IRQ dự kiến GPIO7, SPI dùng chung GPIO12/11/8. Touch <strong>chưa được bật trong firmware</strong>. Không phải mọi màn hình 2.8" đều có touch.</p>
- <button type="button" id="goSerial">Mở Serial Monitor để chẩn đoán →</button>
+ <div class="audio-guide">
+ <div class="step">03 · I²S AUDIO</div>
+ <h2>Đấu nối Micro &amp; Loa</h2>
+ <p>Cấu hình GPIO bên dưới là <strong>giá trị hiện có trong firmware ESP32-S3 của dự án</strong>. Cần xác nhận model micro, điện áp module, chân cấu hình và dây loa trên linh kiện thực tế trước khi cấp nguồn.</p>
+ <div class="audio-panels">
+  <article class="audio-card">
+   <h3>🎙️ Micro I²S (đầu vào)</h3>
+   <p>Áp dụng cho micro I²S có tín hiệu BCLK / WS / DATA, ví dụ một số breakout INMP441. <strong>Không áp dụng cho micro analog</strong> hoặc PDM nếu không thay driver.</p>
+   <div class="table-scroll"><table><thead><tr><th>Chân micro</th><th>ESP32-S3</th><th>Lưu ý</th></tr></thead><tbody id="micWiringRows"></tbody></table></div>
+   <p class="small">Không nối chân L/R của micro theo suy đoán: cần biết đúng model và chế độ kênh đã được firmware hỗ trợ.</p>
+  </article>
+  <article class="audio-card">
+   <h3>🔊 MAX98357A + loa (đầu ra)</h3>
+   <p>Ampli I²S nhận dữ liệu số từ ESP32-S3 và cấp công suất cho loa. Loa 4Ω/3W là cấu hình dự kiến của dự án.</p>
+   <div class="table-scroll"><table><thead><tr><th>Chân ampli/loa</th><th>Kết nối</th><th>Lưu ý</th></tr></thead><tbody id="speakerWiringRows"></tbody></table></div>
+   <p class="warning">MAX98357A có ngõ ra loa dạng cầu (BTL): không nối SPK- vào GND, không nối loa trực tiếp với ESP32.</p>
+  </article>
+ </div>
+ <h3>Thứ tự thử nghiệm an toàn</h3>
+ <ol class="troubleshoot">
+  <li>Ngắt USB và mọi nguồn ngoài trước khi cắm hoặc đổi dây. Kiểm tra lại cực nguồn, GND và chân I²S.</li>
+  <li>Chỉ nối micro sau khi xác nhận đúng chip, điện áp và pinout. Kết nối Wi-Fi trước để xem log ứng dụng ổn định.</li>
+  <li>Chỉ nối MAX98357A và loa sau khi xác nhận nguồn cấp và SPK±. Bắt đầu ở âm lượng thấp.</li>
+  <li>Mở Serial Monitor, nhấn RESET; tìm log AudioCodec / I2S / lỗi driver. Không suy ra micro hoạt động chỉ vì log khởi động thành công.</li>
+  <li>Thử phát âm thanh và nói vào micro sau khi hệ thống vào trạng thái hội thoại. Nếu không có tiếng, kiểm tra phần cứng, kênh L/R, đường dữ liệu và trạng thái SD/GAIN.</li>
+ </ol>
+ <div class="notice">Chưa có chức năng thu/đo âm lượng micro hay phát test loa trực tiếp từ website. Hướng dẫn này chỉ hiển thị sơ đồ dây và các bước chẩn đoán; khi có firmware test được xác minh mới bật thử nghiệm âm thanh tự động.</div>
+</div>
+<button type="button" id="goSerial">Mở Serial Monitor để chẩn đoán →</button>
 </section>
 <div id="serialTab" class="tabpanel" hidden>
   <section class="panel"><div class="heading"><div><div class="step">03</div><h2>Serial Monitor &amp; Boot Log</h2></div><span id="serialState" class="state" aria-live="polite">Chưa kết nối</span></div>
