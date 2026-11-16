@@ -1,5 +1,6 @@
 import {validateMergedImage, parseChecksum, redactSecrets, classifyLog} from "./diagnostics.mjs";
 import {setupWiringUI, DISPLAYS} from "./wiring-guide.mjs";
+import {setupTouchGuide} from "./touch-guide.mjs";
 const $ = id => document.getElementById(id);
 const repo = "YHresearcher/ModESP32";
 const MAX_LOG = 300000;
@@ -7,6 +8,10 @@ let firmwareUrl = null, manifestUrl = null, selectedFile = null, validated = fal
 let port = null, reader = null, reading = false, serialText = "";
 let selectionSerial = 0;
 let currentDisplay = "st7789v";
+let currentProfile = "st7789v";
+function selectedProfile(){return currentDisplay === "st7789v" && $("firmwareProfile").value === "touch" ? "st7789v-touch" : currentDisplay;}
+function selectedBoard(){return currentProfile === "st7789v-touch" ? "mod-esp32s3-st7789v-touch-28" : DISPLAYS[currentDisplay].board;}
+function selectedTagOk(tag){return (currentProfile === "st7789v-touch" ? /^mod-esp32s3-touch-dev-[0-9a-f]{12}$/ : currentProfile === "st7789v" ? /^mod-esp32s3-dev-[0-9a-f]{12}$/ : /^mod-esp32s3-ili9341-dev-[0-9a-f]{12}$/).test(tag);}
 
 function message(text) { $("reportStatus").textContent = text; }
 function append(chunk) {
@@ -83,15 +88,15 @@ async function loadAutoFirmware() {
   $("autoFirmwareStatus").textContent = "Đang đọc firmware Development từ GitHub…";
   $("fileStatus").textContent = "Đang xác minh bản Development…";
   try {
-    const response = await fetch("/api/firmware/latest?display="+encodeURIComponent(currentDisplay),{cache:"no-store"});
+    const response = await fetch("/api/firmware/latest?display="+encodeURIComponent(currentProfile),{cache:"no-store"});
     if (!response.ok) throw Error("API firmware HTTP "+response.status);
     const meta = await response.json();
     if (request !== selectionSerial) return;
     if (!meta.available) throw Error("Chưa có bản Development được xuất bản.");
     if (meta.channel !== "development" || meta.tested !== false ||
-        meta.board !== DISPLAYS[currentDisplay].board || meta.chipFamily !== "ESP32-S3" ||
-        meta.display !== currentDisplay ||
-        !(currentDisplay === "st7789v" ? /^mod-esp32s3-dev-[0-9a-f]{12}$/ : /^mod-esp32s3-ili9341-dev-[0-9a-f]{12}$/).test(meta.tag) ||
+        meta.board !== selectedBoard() || meta.chipFamily !== "ESP32-S3" ||
+        meta.display !== currentProfile ||
+        !selectedTagOk(meta.tag) ||
         !/^[0-9a-f]{64}$/.test(meta.sha256) ||
         !Number.isSafeInteger(meta.size) || meta.size < 1048576 || meta.size > 16777216 ||
         meta.firmwareUrl !== "/api/firmware/binary?tag="+encodeURIComponent(meta.tag)) {
@@ -149,6 +154,9 @@ async function validateSelectedFile() {
   }
 }
 setupWiringUI({onDisplayChange(display) {
+  $("firmwareProfile").disabled = display !== "st7789v";
+  $("firmwareProfile").value = "normal";
+  currentProfile = display;
   currentDisplay = display;
   $("confirmBoard").checked = false;
   $("confirmHardware").checked = false;
@@ -165,6 +173,23 @@ setupWiringUI({onDisplayChange(display) {
   }
 }});
 
+setupTouchGuide();
+$("firmwareProfile").addEventListener("change",()=>{
+  currentProfile = selectedProfile();
+  $("targetBoard").textContent = selectedBoard();
+  $("touchProfileNotice").textContent = currentProfile === "st7789v-touch"
+    ? "CHỈ THỬ NGHIỆM: yêu cầu đấu đủ 5 dây touch, firmware đang được build/chưa kiểm chứng. Giữ bản ST7789V cũ để khôi phục."
+    : "Chế độ thường dùng firmware ST7789V đã lên hình. Chỉ bật Touch Diagnostic sau khi kiểm tra nguồn và dây.";
+  $("confirmBoard").checked = false;
+  $("confirmHardware").checked = false;
+  ++selectionSerial;
+  resetManifest();
+  if($("firmwareSource").value==="auto")void loadAutoFirmware();
+  else{
+    $("firmware").value="";$("checksum").value="";
+    $("fileStatus").textContent="Đã đổi chế độ firmware: cần chọn lại .bin chính xác.";
+  }
+});
 $("connect").addEventListener("click", async () => {
   if (!("serial" in navigator) || !window.isSecureContext) return message("Cần Web Serial và HTTPS.");
   if (port) return;
