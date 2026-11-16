@@ -13,31 +13,53 @@
  <main>
   <section class="hero"><p class="eyebrow">DIY AI VOICE ASSISTANT</p><h1>Flash firmware &amp; chẩn đoán thiết bị</h1><p>ST7789V 2.8” · 240 × 320 · I²S Microphone · MAX98357A · XiaoZhi</p><div id="compat" class="notice">Đang kiểm tra Web Serial…</div></section>
   <div class="steps">
-   <section class="panel"><div class="step">01</div><h2>Chọn firmware</h2><p>Tải file <code>merged-binary.bin</code> từ GitHub Actions. Chỉ dùng firmware build cho <strong>mod-esp32s3-st7789v-28</strong>. File là bản thử nghiệm, chưa xác nhận chạy trên phần cứng.</p>
-    <p><a id="actionsLink" class="link" href="https://github.com/YHresearcher/ModESP32/actions/workflows/mod-esp32s3-firmware.yml" target="_blank" rel="noopener">Mở GitHub Actions để tải firmware ↗</a></p>
-    <label for="firmware">Firmware binary (.bin)</label><input id="firmware" type="file" accept=".bin,application/octet-stream">
-    <div id="fileStatus" class="status">Chưa chọn file</div>
+   <section class="panel"><div class="step">01</div><h2>Chọn firmware</h2><p>Chỉ sử dụng <code>merged-binary.bin</code> dành cho <strong>mod-esp32s3-st7789v-28</strong> từ GitHub Actions. Không sử dụng file <code>xiaozhi.bin</code> độc lập tại offset 0.</p>
+    <p><a href="https://github.com/YHresearcher/ModESP32/actions/workflows/mod-esp32s3-firmware.yml" target="_blank" rel="noopener">Mở GitHub Actions để tải firmware ↗</a></p>
+    <div class="auto-firmware">
+      <label for="firmwareSource">Nguồn firmware</label>
+      <select id="firmwareSource">
+        <option value="auto">Development – bản mới nhất từ GitHub</option>
+        <option value="manual">Thủ công – chọn file từ máy</option>
+      </select>
+      <div id="autoFirmwareStatus" class="status" role="status">Đang kiểm tra bản Development mới nhất…</div>
+      <button id="refreshFirmware" type="button">Kiểm tra lại bản mới</button>
+      <p class="small">Development là bản build thành công nhưng <strong>chưa được kiểm thử phần cứng</strong>. Chế độ Latest Tested sẽ xuất hiện khi đã có bản được nghiệm thu.</p>
+    </div>
+    <div id="manualFirmware" hidden>
+    <label for="firmware">Firmware đã giải nén (.bin)</label><input id="firmware" type="file" accept=".bin,application/octet-stream">
+    <label for="checksum">SHA256SUMS trong artifact (khuyến nghị)</label><input id="checksum" type="file" accept=".txt,.sha256,.sha256sum" aria-describedby="checksumHint">
+    <p class="small" id="checksumHint">Nếu không có SHA256SUMS, website chỉ kiểm tra cấu trúc file.</p></div>
+    <div id="fileStatus" class="status" role="status">Chưa chọn firmware</div>
+    <p class="small" id="firmwareHash"></p>
    </section>
-   <section class="panel"><div class="step">02</div><h2>Flash ESP32-S3</h2><p>Kết nối board qua cổng COM (USB-to-UART) hoặc USB tương thích, dùng Chrome/Edge trên máy tính. Ngắt Serial Monitor trước khi flash.</p>
+   <section class="panel"><div class="step">02</div><h2>Flash ESP32-S3</h2><p>Dùng Chrome/Edge trên máy tính và cáp USB truyền dữ liệu. Chỉ flash khi đã kiểm tra nguồn và dây nối. Nạp firmware có thể làm mất cấu hình hiện có.</p>
+    <label class="checkline"><input id="confirmBoard" type="checkbox"> Tôi xác nhận thiết bị là ESP32-S3 N16R8 và file firmware dành cho đúng board.</label>
+    <label class="checkline"><input id="confirmHardware" type="checkbox"> Tôi đã kiểm tra kết nối nguồn, GPIO, màn hình và lưu cấu hình cần thiết.</label>
     <esp-web-install-button id="installer" class="installer" manifest="about:blank">
-      <button slot="activate" class="primary">Kết nối &amp; Flash Firmware</button>
-      <span slot="unsupported" class="warning">Trình duyệt này chưa hỗ trợ Web Serial. Dùng Chrome hoặc Edge trên desktop.</span>
-      <span slot="not-allowed" class="warning">Cần HTTPS hoặc localhost để sử dụng Web Serial.</span>
+      <button id="flashButton" slot="activate" class="primary" disabled>Kết nối &amp; Flash Firmware</button>
+      <span slot="unsupported" class="warning">Trình duyệt không hỗ trợ nạp qua Web Serial. Dùng Chrome/Edge trên desktop.</span>
+      <span slot="not-allowed" class="warning">Cần HTTPS hoặc localhost và được cấp quyền truy cập USB.</span>
     </esp-web-install-button>
-    <p class="small">Bản đầu tiên cần bạn chọn file .bin. Không hỗ trợ tự tải firmware nếu chưa có bản build thành công.</p>
+    <p class="small" id="flashHelp">Firmware phải tải và xác minh thành công trước khi bật nút Flash.</p>
    </section>
   </div>
-  <section class="panel"><div class="heading"><div><div class="step">03</div><h2>Serial Monitor &amp; Boot Log</h2></div><span id="serialState" class="state">Chưa kết nối</span></div>
+  <section class="panel"><div class="heading"><div><div class="step">03</div><h2>Serial Monitor &amp; Boot Log</h2></div><span id="serialState" class="state" aria-live="polite">Chưa kết nối</span></div>
    <div class="controls"><label for="baud">Baud rate</label><select id="baud"><option value="115200">115200</option><option value="74880">74880</option><option value="921600">921600</option></select><button id="connect">Kết nối Serial</button><button id="disconnect" disabled>Ngắt kết nối</button><button id="clear">Xóa log</button></div>
-   <pre id="log" role="log" aria-live="off">[ModESP32] Sẵn sàng nhận log qua USB.\n</pre>
-   <p class="small">Serial Monitor và công cụ flash dùng cùng cổng USB: hãy đóng một bên trước khi sử dụng bên kia. Để đọc boot log, kết nối serial rồi nhấn RESET/EN trên board.</p>
+   <pre id="log" role="log" aria-live="off">[ModESP32] Sẵn sàng nhận log qua USB.
+</pre>
+   <div id="diagnostics" class="status">Chưa có log để phân tích.</div>
+   <p class="small">Đóng cửa sổ flash trước khi mở Serial Monitor. Sau khi kết nối, nhấn RESET/EN để xem boot log. Log được giữ trong trình duyệt, không tự gửi lên mạng.</p>
   </section>
-  <section class="panel"><div class="heading"><div><div class="step">04</div><h2>Gửi log lỗi để chẩn đoán</h2></div></div>
-   <p>Log chỉ nằm trên máy bạn cho đến khi bạn tự tải/copy hoặc gửi. Chọn <strong>Chuẩn bị GitHub Issue</strong> để mở bản nháp với một đoạn log đã được che dữ liệu nhạy cảm. Hãy đọc lại nội dung trước khi đăng công khai.</p>
-   <div class="controls"><button id="download">Tải log .txt</button><button id="copy">Copy log đã lọc</button><button id="issue" class="primary">Chuẩn bị GitHub Issue ↗</button></div>
+  <section class="panel"><div class="heading"><div><div class="step">04</div><h2>Xuất báo cáo chẩn đoán</h2></div></div>
+   <p>Website sẽ <strong>chỉ tạo bản nháp</strong> GitHub Issue. Bạn có thể chỉnh sửa log đã lọc bên dưới và phải xác nhận trước khi mở bản nháp. Issues của repository công khai nên người khác có thể đọc nội dung bạn đăng.</p>
+   <div class="controls"><button id="download">Tải log gốc .txt</button><button id="prepare">Tạo bản xem trước đã lọc</button><button id="copy">Copy bản xem trước</button></div>
+   <label for="reportPreview">Xem lại nội dung trước khi chia sẻ</label>
+   <textarea id="reportPreview" rows="11" placeholder="Nhấn 'Tạo bản xem trước đã lọc' để xem nội dung. Bạn có thể chỉnh sửa hoặc xóa dữ liệu riêng tư trước khi gửi."></textarea>
+   <label class="checkline"><input id="confirmShare" type="checkbox"> Tôi đã đọc và xóa thông tin nhạy cảm, đồng ý tự đăng báo cáo này lên GitHub nếu muốn.</label>
+   <button id="issue" class="primary" disabled>Mở bản nháp GitHub Issue ↗</button>
    <div id="reportStatus" class="status" aria-live="polite">Chưa gửi dữ liệu nào.</div>
   </section>
-  <footer>ModESP32 · Experimental build · Chỉ sử dụng đúng nguồn cấp và sơ đồ chân đã kiểm chứng. <a href="https://github.com/YHresearcher/ModESP32/issues" target="_blank" rel="noopener">Xem Issues</a></footer>
+  <footer>ModESP32 · Experimental build · Không flash nếu chưa xác minh phần cứng. <a href="https://github.com/YHresearcher/ModESP32/issues" target="_blank" rel="noopener">GitHub Issues</a></footer>
  </main>
  <script type="module" src="./app.js"></script>
 </body>
