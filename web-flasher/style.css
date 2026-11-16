@@ -47,3 +47,12 @@ td:nth-child(2){white-space:nowrap;font-weight:700;color:#e1f1ff}
 .audio-card table{min-width:430px}
 .audio-card .warning{font-size:13px}
 @media(max-width:860px){.audio-panels{grid-template-columns:1fr}.audio-card{padding:15px}}
+
+
+.touch-guide{margin-top:24px;padding-top:20px;border-top:1px solid #304562}
+.touch-guide h2{margin:10px 0 15px}
+.touch-points{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 15px;margin:18px 0}
+.touch-points label{margin:0;font-size:13px}
+.touch-points input{display:block;width:100%;margin:6px 0 0;padding:10px 12px;border:1px solid #3d5572;border-radius:9px;background:#0a182b;color:#eaf5ff}
+#touchProfileNotice{line-height:1.5}
+@media(max-width:550px){.touch-points{grid-template-columns:1fr}.touch-guide{overflow-x:hidden}}
