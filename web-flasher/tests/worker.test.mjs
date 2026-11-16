@@ -42,3 +42,33 @@ test("rejects spoofed manifest and fails closed",async()=>{
   const r=await handleFirmware(new Request("https://device.test/api/firmware/latest"),async()=>Response.json(bad));
   assert.equal(r.status,503);
 });
+
+
+test("ILI9341 display returns only ILI9341 build metadata",async()=>{
+  const iliTag="mod-esp32s3-ili9341-dev-abcdef123456";
+  const ili={...manifest,board:"mod-esp32s3-ili9341-28",tag:iliTag,sourceSha:"abcdef123456"+"f".repeat(28)};
+  const fetchIli=async url=>{
+    if(url.endsWith("latest-ili9341.json"))return Response.json(ili);
+    if(url.endsWith("latest-development.json"))return Response.json(manifest);
+    if(url.includes("/releases/download/"))return new Response(new Uint8Array([0xe9]),{status:200});
+    throw Error("Unexpected URL "+url);
+  };
+  const r=await handleFirmware(new Request("https://device.test/api/firmware/latest?display=ili9341"),fetchIli);
+  const m=await r.json();
+  assert.equal(r.status,200);
+  assert.equal(m.display,"ili9341");
+  assert.equal(m.board,"mod-esp32s3-ili9341-28");
+  assert.equal(m.tag,iliTag);
+  const binary=await handleFirmware(new Request("https://device.test/api/firmware/binary?tag="+iliTag),fetchIli);
+  assert.equal(binary.status,200);
+});
+test("ILI9341 cannot accept ST7789V manifest",async()=>{
+  const r=await handleFirmware(new Request("https://device.test/api/firmware/latest?display=ili9341"),async()=>Response.json(manifest));
+  assert.equal(r.status,503);
+  const result=await r.json();
+  assert.equal(result.available,false);
+});
+test("reject unknown controller and mismatched release tag",async()=>{
+  const r=await handleFirmware(new Request("https://device.test/api/firmware/latest?display=unknown"),fetcher);
+  assert.equal(r.status,400);
+});
