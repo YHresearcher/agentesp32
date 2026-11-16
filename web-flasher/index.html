@@ -27,6 +27,12 @@
    <section class="panel"><div class="step">01</div><h2>Chọn firmware</h2><p>Chỉ sử dụng <code>merged-binary.bin</code> dành cho <strong id="targetBoard">mod-esp32s3-st7789v-28</strong> từ GitHub Actions. Không sử dụng file <code>xiaozhi.bin</code> độc lập tại offset 0.</p>
     <p><a href="https://github.com/YHresearcher/ModESP32/actions/workflows/mod-esp32s3-firmware.yml" target="_blank" rel="noopener">Mở GitHub Actions để tải firmware ↗</a></p>
     <div class="auto-firmware">
+      <label for="firmwareProfile">Chế độ firmware cho ST7789V</label>
+      <select id="firmwareProfile">
+        <option value="normal">XiaoZhi thường — bản màn hình đã hoạt động</option>
+        <option value="touch">Touch Diagnostic XPT2046 — thử nghiệm, chưa kiểm chứng</option>
+      </select>
+      <p class="small" id="touchProfileNotice">Chỉ chọn Touch Diagnostic khi đã xác minh đủ dây cảm ứng. Phiên bản này có thể chưa có build được kiểm thử.</p>
       <label for="firmwareSource">Nguồn firmware</label>
       <select id="firmwareSource">
         <option value="auto">Development – bản mới nhất từ GitHub</option>
@@ -70,7 +76,34 @@
   <li><strong>Hiển thị sai màu / lệch / xoay:</strong> gửi ảnh và log Serial; có thể phải hiệu chỉnh inversion, RGB/BGR, offset và rotation theo panel.</li>
   <li><strong>Khởi động lại liên tục:</strong> ngắt nguồn, kiểm tra chập dây, dòng cấp và các thông báo lỗi trong Serial Monitor.</li>
  </ol>
- <p class="small">Touch XPT2046 (nếu module có): T_CS dự kiến GPIO9, T_IRQ dự kiến GPIO7, SPI dùng chung GPIO12/11/8. Touch <strong>chưa được bật trong firmware</strong>. Không phải mọi màn hình 2.8" đều có touch.</p>
+ <section class="touch-guide" aria-labelledby="touch-guide-title">
+  <div class="step">03 · TOUCH DIAGNOSTIC</div>
+  <h2 id="touch-guide-title">Cảm ứng điện trở XPT2046-compatible</h2>
+  <p>Module có T_CLK, T_DIN, T_DO, T_CS, T_IRQ phù hợp với giao thức cảm ứng điện trở SPI kiểu XPT2046, nhưng tên chip thật <strong>chưa xác nhận</strong>. Firmware LCD bình thường vẫn giữ nguyên; có biến thể Touch Diagnostic riêng để kiểm tra.</p>
+  <div class="wiring-grid">
+   <div><h3>ESP32-S3 ↔ Touch</h3><div id="touchDiagram" class="wiring-diagram" aria-label="Sơ đồ chân cảm ứng"></div></div>
+   <div><h3>Bảng dây cảm ứng</h3><div class="table-scroll"><table><thead><tr><th>Touch</th><th>ESP32-S3</th><th>Lưu ý</th></tr></thead><tbody id="touchWiringRows"></tbody></table></div></div>
+  </div>
+  <h3>Quy trình kiểm tra 5 điểm</h3>
+  <p>Chọn <strong>Touch Diagnostic</strong> tại tab Flash sau khi dây đã kiểm tra, và lưu lại cấu hình Wi-Fi nếu cần. Đây là bản thử nghiệm: không đảm bảo hoạt động cho đến khi xác minh trực tiếp trên thiết bị.</p>
+  <ol class="troubleshoot">
+   <li>Khởi động với Touch Diagnostic; xem Serial Monitor có <code>TOUCH_READY</code> hay <code>TOUCH_INIT_FAILED</code>.</li>
+   <li>Chạm lần lượt <strong>trên trái, trên phải, giữa, dưới trái, dưới phải</strong>, mỗi lần giữ ngắn rồi thả.</li>
+   <li>Quan sát các dòng <code>TOUCH_SAMPLE x=... y=... irq=...</code>; kiểm tra tọa độ thay đổi có tương ứng với vị trí không.</li>
+   <li>Ghi kết quả 5 điểm vào biểu mẫu phía dưới. Dữ liệu chỉ lưu tạm trong trình duyệt; không gửi tự động.</li>
+   <li>Nếu trục bị đảo/lệch, hiệu chỉnh mapping X/Y, swap/mirror trong firmware bằng phép thử sau; <strong>chưa tự động ghi hiệu chuẩn vào Flash</strong>.</li>
+  </ol>
+  <div class="touch-points">
+   <label for="touchTL">Trên trái</label><input id="touchTL" placeholder="x,y" inputmode="text">
+   <label for="touchTR">Trên phải</label><input id="touchTR" placeholder="x,y" inputmode="text">
+   <label for="touchC">Chính giữa</label><input id="touchC" placeholder="x,y" inputmode="text">
+   <label for="touchBL">Dưới trái</label><input id="touchBL" placeholder="x,y" inputmode="text">
+   <label for="touchBR">Dưới phải</label><input id="touchBR" placeholder="x,y" inputmode="text">
+  </div>
+  <div class="controls"><button id="touchAnalyze" type="button">Đánh giá 5 điểm</button><button id="touchCopy" type="button">Copy kết quả</button></div>
+  <div class="status" id="touchAnalysis" role="status">Chưa có dữ liệu hiệu chuẩn. Phải đo thực tế trước khi xác nhận touch.</div>
+  <p class="warning">Tất cả dây touch phải nối khi thiết bị đã ngắt nguồn. T_IRQ = GPIO7 chỉ để giám sát mức; không thay đổi mạch LED đang hiển thị được.</p>
+</section>
  <div class="audio-guide">
  <div class="step">03 · I²S AUDIO</div>
  <h2>Đấu nối Micro &amp; Loa</h2>
