@@ -30,6 +30,8 @@ export function classifyLog(log) {
     ["BOOT_LOOP", /rst:0x|ESP-ROM:/i, "Có thông tin khởi động/reset; nếu lặp lại liên tục có thể là bootloop."],
     ["PSRAM", /PSRAM.*(?:fail|error|not found)|spiram.*(?:fail|error)/i, "Có dấu hiệu lỗi PSRAM hoặc cấu hình bộ nhớ."],
     ["DISPLAY_SPI", /(?:spi|lcd|panel|st7789).*(?:error|fail)|(?:error|fail).*(?:spi|lcd|panel)/i, "Có dấu hiệu lỗi SPI/LCD."],
+    ["TOUCH", /TOUCH_READY|TOUCH_SAMPLE|TOUCH_5PT/i, "Có tín hiệu cảm ứng XPT2046-compatible; xem tọa độ và kiểm tra 5 điểm trong Hướng dẫn kết nối."],
+    ["TOUCH_ERROR", /TOUCH_(?:INIT|IO|INDEV)_FAILED/i, "Không khởi tạo được cảm ứng: kiểm tra dây, GPIO, nguồn và driver."],
     ["AUDIO_I2S", /(?:i2s|audio).*(?:error|fail)|(?:error|fail).*(?:i2s|audio)/i, "Có dấu hiệu lỗi audio/I²S."],
     ["WIFI", /wifi.*(?:disconnect|fail|error)|(?:disconnect|fail).*wifi/i, "Có dấu hiệu kết nối Wi-Fi không ổn định."]
   ];
