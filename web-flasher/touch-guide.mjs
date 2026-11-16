@@ -30,6 +30,17 @@ export function analyzeFivePoints(values){
   "; sai lệch điểm giữa ~"+Math.round(center)+
   ". Đây chỉ là kiểm tra 5 điểm dựa trên tọa độ báo về, chưa phải hiệu chuẩn raw ADC hay xác minh chính xác model controller."};
 }
+
+export function extractTouchFivePoints(log){
+ const result=[null,null,null,null,null];
+ const re=/TOUCH_5PT\s+step=([1-5])\s+label=\S+\s+x=(\d+)\s+y=(\d+)/g;
+ for(const m of String(log||"").matchAll(re)){
+  const parsed=parseXY(m[2]+","+m[3]);
+  if(parsed)result[Number(m[1])-1]=parsed;
+ }
+ return result;
+}
+
 export function setupTouchGuide(){
  const rows=document.getElementById("touchWiringRows");
  const diagram=document.getElementById("touchDiagram");
@@ -46,6 +57,13 @@ export function setupTouchGuide(){
  const getValues=()=>TOUCH_POINT_IDS.map(id=>parseXY(document.getElementById(id).value));
  const analysis=document.getElementById("touchAnalysis");
  document.getElementById("touchAnalyze").addEventListener("click",()=>{analysis.textContent=analyzeFivePoints(getValues()).text;});
+ window.__touchFillFromLog=(log)=>{
+  const values=extractTouchFivePoints(log);
+  for(let i=0;i<5;i++){
+   const el=document.getElementById(TOUCH_POINT_IDS[i]);
+   if(!el.value && values[i])el.value=values[i].x+","+values[i].y;
+  }
+ };
  document.getElementById("touchCopy").addEventListener("click",async()=>{
   const result=analyzeFivePoints(getValues());
   const text=["ModESP32 touch diagnostic (unverified controller)",...TOUCH_POINT_IDS.map((id,i)=>id+": "+(document.getElementById(id).value||"N/A")),result.text].join("\n");
