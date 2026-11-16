@@ -3,6 +3,7 @@
 const REPO = "YHresearcher/ModESP32";
 const PROFILES = Object.freeze({
   st7789v: {board:"mod-esp32s3-st7789v-28", tag:/^mod-esp32s3-dev-[a-f0-9]{12}$/, file:"latest-development.json"},
+  "st7789v-touch": {board:"mod-esp32s3-st7789v-touch-28", tag:/^mod-esp32s3-touch-dev-[a-f0-9]{12}$/, file:"latest-touch-development.json"},
   ili9341: {board:"mod-esp32s3-ili9341-28", tag:/^mod-esp32s3-ili9341-dev-[a-f0-9]{12}$/, file:"latest-ili9341.json"}
 });
 const RAW_BASE = "https://raw.githubusercontent.com/" + REPO + "/main/web-flasher/";
