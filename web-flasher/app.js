@@ -103,7 +103,7 @@ async function loadAutoFirmware() {
         meta.firmwareUrl !== "/api/firmware/binary?tag="+encodeURIComponent(meta.tag)) {
       throw Error("Metadata Development không hợp lệ; không flash.");
     }
-    $("autoFirmwareStatus").textContent = "Đã tìm thấy "+meta.tag+" · "+(meta.size/1048576).toFixed(2)+" MiB. Đang tải và xác minh SHA-256…";
+    $("autoFirmwareStatus").textContent = "Đã tìm thấy "+(currentProfile === "st7789v-touch" ? "Chibi AI v1.0 RC · " : "")+meta.tag+" · "+(meta.size/1048576).toFixed(2)+" MiB. Đang tải và xác minh SHA-256…";
     const result = await fetch(meta.firmwareUrl,{cache:"no-store"});
     if (!result.ok) throw Error("Tải firmware thất bại: HTTP "+result.status);
     if (result.redirected && new URL(result.url).origin !== location.origin) throw Error("Firmware bị chuyển tới host khác ngoài Cloudflare.");
@@ -116,7 +116,7 @@ async function loadAutoFirmware() {
     if (request !== selectionSerial) return;
     if (sha !== meta.sha256) throw Error("SHA-256 firmware không khớp release; đã chặn Flash.");
     installLocalManifest(binary,request,meta.tag,sha);
-    $("autoFirmwareStatus").textContent = "✓ Development "+meta.tag+" · SHA-256 khớp · Chưa kiểm thử trên phần cứng thật.";
+    $("autoFirmwareStatus").textContent = "✓ Chibi AI v1.0 RC · build "+meta.tag+" · SHA-256 khớp · Chưa nghiệm thu trên phần cứng thật.";
     $("fileStatus").textContent = "Firmware Development đã sẵn sàng. Không cần tải ZIP thủ công.";
   } catch(e) {
     if(request !== selectionSerial)return;
@@ -179,7 +179,7 @@ $("firmwareProfile").addEventListener("change",()=>{
   currentProfile = selectedProfile();
   $("targetBoard").textContent = selectedBoard();
   $("touchProfileNotice").textContent = currentProfile === "st7789v-touch"
-    ? "CHỈ THỬ NGHIỆM: yêu cầu đấu đủ 5 dây touch, firmware đang được build/chưa kiểm chứng. Giữ bản ST7789V cũ để khôi phục."
+    ? "CHIBI AI v1.0 RC: TALK / VOL / SET và XPT2046. Development chưa nghiệm thu phần cứng. Giữ firmware đã chạy ổn để khôi phục."
     : "Chế độ thường dùng firmware ST7789V đã lên hình. Chỉ bật Touch Diagnostic sau khi kiểm tra nguồn và dây.";
   $("confirmBoard").checked = false;
   $("confirmHardware").checked = false;
