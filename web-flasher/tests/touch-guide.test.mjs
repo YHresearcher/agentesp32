@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {parseXY, analyzeFivePoints, TOUCH_WIRES} from "../touch-guide.mjs";
+import {parseXY, analyzeFivePoints, TOUCH_WIRES, extractTouchFivePoints} from "../touch-guide.mjs";
 test("touch pin assignments match the isolated firmware",()=>{
  const map=Object.fromEntries(TOUCH_WIRES.map(([pin,gpio])=>[pin,gpio]));
  assert.equal(map.T_CLK,"GPIO12");
@@ -22,4 +22,12 @@ test("five point analysis reports swap and mirror",()=>{
  assert.equal(a.ok,true); assert.equal(a.swapped,false); assert.equal(a.mirrorX,false);
  const b=analyzeFivePoints([{x:3800,y:100},{x:100,y:100},{x:1950,y:1950},{x:3800,y:3800},{x:100,y:3800}]);
  assert.equal(b.ok,true); assert.equal(b.mirrorX,true);
+});
+
+test("five-point samples are extracted from serial logs without sending data",()=>{
+ const logs="I (100) Touch5Point: TOUCH_5PT step=1 label=Tren x=120 y=200\\nI (200) Touch5Point: TOUCH_5PT step=3 label=Giua x=1700 y=1900";
+ const points=extractTouchFivePoints(logs);
+ assert.deepEqual(points[0],{x:120,y:200});
+ assert.deepEqual(points[2],{x:1700,y:1900});
+ assert.equal(points[1],null);
 });
