@@ -39,7 +39,7 @@ async function getManifest(fetcher, assets, request, profile) {
     const res=await assets.fetch(new Request(local.toString()));
     if(res.ok){
       const m=await res.json();
-      if(valid(m))return m;
+      if(valid(m,profile))return m;
     }
   }
   throw Error("Development manifest could not be loaded or validated.");
