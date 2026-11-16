@@ -88,10 +88,10 @@
   <p>Chọn <strong>Touch Diagnostic</strong> tại tab Flash sau khi dây đã kiểm tra, và lưu lại cấu hình Wi-Fi nếu cần. Đây là bản thử nghiệm: không đảm bảo hoạt động cho đến khi xác minh trực tiếp trên thiết bị.</p>
   <ol class="troubleshoot">
    <li>Khởi động với Touch Diagnostic; xem Serial Monitor có <code>TOUCH_READY</code> hay <code>TOUCH_INIT_FAILED</code>.</li>
-   <li>Chạm lần lượt <strong>trên trái, trên phải, giữa, dưới trái, dưới phải</strong>, mỗi lần giữ ngắn rồi thả.</li>
+   <li>Chạm lần lượt <strong>trên trái, trên phải, giữa, dưới trái, dưới phải</strong>, mỗi lần giữ ngắn rồi thả. Bản thử nghiệm mới ghi nhận thao tác trên toàn màn hình, không yêu cầu chạm trúng vùng nút khi chưa hiệu chuẩn.</li>
    <li>Quan sát các dòng <code>TOUCH_SAMPLE x=... y=... irq=...</code>; kiểm tra tọa độ thay đổi có tương ứng với vị trí không.</li>
    <li>Ghi kết quả 5 điểm vào biểu mẫu phía dưới. Dữ liệu chỉ lưu tạm trong trình duyệt; không gửi tự động.</li>
-   <li>Nếu trục bị đảo/lệch, hiệu chỉnh mapping X/Y, swap/mirror trong firmware bằng phép thử sau; <strong>chưa tự động ghi hiệu chuẩn vào Flash</strong>.</li>
+   <li>Nếu trục bị đảo/lệch, kiểm tra các giá trị theo thứ tự điểm: firmware thử nghiệm áp dụng đảo X sơ bộ theo log thực tế; <strong>chưa tự động ghi hiệu chuẩn vào Flash</strong>.</li>
   </ol>
   <div class="touch-points">
    <label for="touchTL">Trên trái</label><input id="touchTL" placeholder="x,y" inputmode="text">
