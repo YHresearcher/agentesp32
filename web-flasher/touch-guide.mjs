@@ -33,7 +33,7 @@ export function analyzeFivePoints(values){
 
 export function extractTouchFivePoints(log){
  const result=[null,null,null,null,null];
- const re=/TOUCH_5PT\s+step=([1-5])\s+label=\S+\s+x=(\d+)\s+y=(\d+)/g;
+ const re=/TOUCH_5PT\s+step=([1-5])\s+label=.*?\s+x=(\d+)\s+y=(\d+)/g;
  for(const m of String(log||"").matchAll(re)){
   const parsed=parseXY(m[2]+","+m[3]);
   if(parsed)result[Number(m[1])-1]=parsed;
