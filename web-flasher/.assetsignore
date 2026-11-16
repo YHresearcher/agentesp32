@@ -1,0 +1,5 @@
+_worker.js
+wrangler.jsonc
+tests/**
+README.md
+node_modules/**
