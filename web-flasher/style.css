@@ -35,3 +35,15 @@ td:nth-child(2){white-space:nowrap;font-weight:700;color:#e1f1ff}
 .troubleshoot{padding-left:21px;line-height:1.7;color:#d1dfef}
 .troubleshoot li{margin-bottom:10px}
 @media(max-width:760px){.wiring-grid{grid-template-columns:1fr}.tabnav .tab{min-width:110px;flex:1 1 auto}.display-choice{padding:16px}.wiring-diagram{overflow-x:auto}}
+
+
+/* I2S microphone + MAX98357A setup cards */
+.audio-guide{margin-top:26px;border-top:1px solid #304562;padding-top:25px}
+.audio-guide h2{margin-top:12px}
+.audio-panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0 22px}
+.audio-card{background:#0b1a2b;border:1px solid #304864;border-radius:13px;padding:18px;min-width:0}
+.audio-card h3{margin:2px 0 12px;font-size:17px}
+.audio-card p{font-size:13px;line-height:1.6}
+.audio-card table{min-width:430px}
+.audio-card .warning{font-size:13px}
+@media(max-width:860px){.audio-panels{grid-template-columns:1fr}.audio-card{padding:15px}}
