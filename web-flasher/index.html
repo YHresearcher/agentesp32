@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1220">
+  <title>ModESP32 Firmware Center</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+</head>
+<body>
+ <header><div class="brand"><span class="chip">ESP32</span><div><strong>ModESP32</strong><small>Firmware Center · ESP32-S3 N16R8</small></div></div><a href="https://github.com/YHresearcher/ModESP32" target="_blank" rel="noopener">GitHub Repository ↗</a></header>
+ <main>
+  <section class="hero"><p class="eyebrow">DIY AI VOICE ASSISTANT</p><h1>Flash firmware &amp; chẩn đoán thiết bị</h1><p>ST7789V 2.8” · 240 × 320 · I²S Microphone · MAX98357A · XiaoZhi</p><div id="compat" class="notice">Đang kiểm tra Web Serial…</div></section>
+  <div class="steps">
+   <section class="panel"><div class="step">01</div><h2>Chọn firmware</h2><p>Tải file <code>merged-binary.bin</code> từ GitHub Actions. Chỉ dùng firmware build cho <strong>mod-esp32s3-st7789v-28</strong>. File là bản thử nghiệm, chưa xác nhận chạy trên phần cứng.</p>
+    <p><a id="actionsLink" class="link" href="https://github.com/YHresearcher/ModESP32/actions/workflows/mod-esp32s3-firmware.yml" target="_blank" rel="noopener">Mở GitHub Actions để tải firmware ↗</a></p>
+    <label for="firmware">Firmware binary (.bin)</label><input id="firmware" type="file" accept=".bin,application/octet-stream">
+    <div id="fileStatus" class="status">Chưa chọn file</div>
+   </section>
+   <section class="panel"><div class="step">02</div><h2>Flash ESP32-S3</h2><p>Kết nối board qua cổng COM (USB-to-UART) hoặc USB tương thích, dùng Chrome/Edge trên máy tính. Ngắt Serial Monitor trước khi flash.</p>
+    <esp-web-install-button id="installer" class="installer" manifest="about:blank">
+      <button slot="activate" class="primary">Kết nối &amp; Flash Firmware</button>
+      <span slot="unsupported" class="warning">Trình duyệt này chưa hỗ trợ Web Serial. Dùng Chrome hoặc Edge trên desktop.</span>
+      <span slot="not-allowed" class="warning">Cần HTTPS hoặc localhost để sử dụng Web Serial.</span>
+    </esp-web-install-button>
+    <p class="small">Bản đầu tiên cần bạn chọn file .bin. Không hỗ trợ tự tải firmware nếu chưa có bản build thành công.</p>
+   </section>
+  </div>
+  <section class="panel"><div class="heading"><div><div class="step">03</div><h2>Serial Monitor &amp; Boot Log</h2></div><span id="serialState" class="state">Chưa kết nối</span></div>
+   <div class="controls"><label for="baud">Baud rate</label><select id="baud"><option value="115200">115200</option><option value="74880">74880</option><option value="921600">921600</option></select><button id="connect">Kết nối Serial</button><button id="disconnect" disabled>Ngắt kết nối</button><button id="clear">Xóa log</button></div>
+   <pre id="log" role="log" aria-live="off">[ModESP32] Sẵn sàng nhận log qua USB.\n</pre>
+   <p class="small">Serial Monitor và công cụ flash dùng cùng cổng USB: hãy đóng một bên trước khi sử dụng bên kia. Để đọc boot log, kết nối serial rồi nhấn RESET/EN trên board.</p>
+  </section>
+  <section class="panel"><div class="heading"><div><div class="step">04</div><h2>Gửi log lỗi để chẩn đoán</h2></div></div>
+   <p>Log chỉ nằm trên máy bạn cho đến khi bạn tự tải/copy hoặc gửi. Chọn <strong>Chuẩn bị GitHub Issue</strong> để mở bản nháp với một đoạn log đã được che dữ liệu nhạy cảm. Hãy đọc lại nội dung trước khi đăng công khai.</p>
+   <div class="controls"><button id="download">Tải log .txt</button><button id="copy">Copy log đã lọc</button><button id="issue" class="primary">Chuẩn bị GitHub Issue ↗</button></div>
+   <div id="reportStatus" class="status" aria-live="polite">Chưa gửi dữ liệu nào.</div>
+  </section>
+  <footer>ModESP32 · Experimental build · Chỉ sử dụng đúng nguồn cấp và sơ đồ chân đã kiểm chứng. <a href="https://github.com/YHresearcher/ModESP32/issues" target="_blank" rel="noopener">Xem Issues</a></footer>
+ </main>
+ <script type="module" src="./app.js"></script>
+</body>
+</html>

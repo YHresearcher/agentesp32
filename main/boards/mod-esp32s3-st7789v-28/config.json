@@ -1,0 +1,10 @@
+{
+  "type": "mod-esp32s3-st7789v-28",
+  "target": "esp32s3",
+  "builds": [
+    {
+      "name": "mod-esp32s3-st7789v-28",
+      "sdkconfig_append": []
+    }
+  ]
+}
