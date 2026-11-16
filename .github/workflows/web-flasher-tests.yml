@@ -1,0 +1,32 @@
+name: Web Flasher Tests
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "web-flasher/**"
+      - ".github/workflows/web-flasher-tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "web-flasher/**"
+      - ".github/workflows/web-flasher-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Validate Web Flasher
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check browser script syntax
+        run: |
+          node --check web-flasher/app.js
+          node --check web-flasher/diagnostics.mjs
+      - name: Run diagnostics unit tests
+        run: node --test web-flasher/tests/*.test.mjs
