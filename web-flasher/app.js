@@ -1,6 +1,6 @@
 import {validateMergedImage, parseChecksum, redactSecrets, classifyLog} from "./diagnostics.mjs";
 import {setupWiringUI, DISPLAYS} from "./wiring-guide.mjs";
-import {setupTouchGuide} from "./touch-guide.mjs";
+import {setupTouchGuide,fillTouchPointsFromLog} from "./touch-guide.mjs";
 const $ = id => document.getElementById(id);
 const repo = "YHresearcher/ModESP32";
 const MAX_LOG = 300000;
@@ -18,6 +18,7 @@ function append(chunk) {
   serialText = (serialText + chunk).slice(-MAX_LOG);
   $("log").textContent = serialText || "[No data]";
   $("log").scrollTop = $("log").scrollHeight;
+  fillTouchPointsFromLog(serialText);
   const findings = classifyLog(serialText);
   $("diagnostics").textContent = findings.length ? "Gợi ý: " + findings.map(f => f.code + " – " + f.message).join(" | ") : "Chưa nhận diện được lỗi qua các mẫu log hiện tại.";
 }
