@@ -25,7 +25,7 @@ test("five point analysis reports swap and mirror",()=>{
 });
 
 test("five-point samples are extracted from serial logs without sending data",()=>{
- const logs="I (100) Touch5Point: TOUCH_5PT step=1 label=Tren x=120 y=200\\nI (200) Touch5Point: TOUCH_5PT step=3 label=Giua x=1700 y=1900";
+ const logs="I (100) Touch5Point: TOUCH_5PT step=1 label=Tren trai x=120 y=200\\nI (200) Touch5Point: TOUCH_5PT step=3 label=Giua x=1700 y=1900";
  const points=extractTouchFivePoints(logs);
  assert.deepEqual(points[0],{x:120,y:200});
  assert.deepEqual(points[2],{x:1700,y:1900});
