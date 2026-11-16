@@ -11,9 +11,20 @@
 <body>
  <header><div class="brand"><span class="chip">ESP32</span><div><strong>ModESP32</strong><small>Firmware Center · ESP32-S3 N16R8</small></div></div><a href="https://github.com/YHresearcher/ModESP32" target="_blank" rel="noopener">GitHub Repository ↗</a></header>
  <main>
-  <section class="hero"><p class="eyebrow">DIY AI VOICE ASSISTANT</p><h1>Flash firmware &amp; chẩn đoán thiết bị</h1><p>ST7789V 2.8” · 240 × 320 · I²S Microphone · MAX98357A · XiaoZhi</p><div id="compat" class="notice">Đang kiểm tra Web Serial…</div></section>
-  <div class="steps">
-   <section class="panel"><div class="step">01</div><h2>Chọn firmware</h2><p>Chỉ sử dụng <code>merged-binary.bin</code> dành cho <strong>mod-esp32s3-st7789v-28</strong> từ GitHub Actions. Không sử dụng file <code>xiaozhi.bin</code> độc lập tại offset 0.</p>
+  <section class="hero"><p class="eyebrow">DIY AI VOICE ASSISTANT</p><h1>Flash firmware &amp; chẩn đoán thiết bị</h1><p>ST7789V / ILI9341 2.8” · 240 × 320 · I²S Microphone · MAX98357A · XiaoZhi</p><div id="compat" class="notice">Đang kiểm tra Web Serial…</div></section>
+  <nav class="tabnav" aria-label="Các phần hướng dẫn">
+  <button type="button" class="tab active" data-tab="flash" aria-selected="true">⚡ Flash Firmware</button>
+  <button type="button" class="tab" data-tab="wiring" aria-selected="false">🔌 Hướng dẫn đấu nối 2.8"</button>
+  <button type="button" class="tab" data-tab="serial" aria-selected="false">🧪 Serial &amp; Chẩn đoán</button>
+</nav>
+<div class="display-choice panel">
+  <label for="displayType">Loại màn hình thực tế (xem chữ in trên module / tài liệu nhà bán)</label>
+  <select id="displayType"><option value="st7789v">ST7789V — LCD SPI 2.8", 240×320</option><option value="ili9341">ILI9341 — LCD SPI 2.8", 240×320</option></select>
+  <p class="small" id="displayNotice">Chọn theo IC điều khiển thật, không dựa vào kích thước 2.8". Việc chọn ở website không thay đổi dây hoặc firmware đã flash.</p>
+</div>
+<div id="flashTab" class="tabpanel">
+<div class="steps">
+   <section class="panel"><div class="step">01</div><h2>Chọn firmware</h2><p>Chỉ sử dụng <code>merged-binary.bin</code> dành cho <strong id="targetBoard">mod-esp32s3-st7789v-28</strong> từ GitHub Actions. Không sử dụng file <code>xiaozhi.bin</code> độc lập tại offset 0.</p>
     <p><a href="https://github.com/YHresearcher/ModESP32/actions/workflows/mod-esp32s3-firmware.yml" target="_blank" rel="noopener">Mở GitHub Actions để tải firmware ↗</a></p>
     <div class="auto-firmware">
       <label for="firmwareSource">Nguồn firmware</label>
@@ -43,6 +54,26 @@
     <p class="small" id="flashHelp">Firmware phải tải và xác minh thành công trước khi bật nút Flash.</p>
    </section>
   </div>
+</div>
+<section id="wiringTab" class="panel tabpanel" hidden>
+ <div class="step">02 · WIRING GUIDE</div><h2>Hướng dẫn đấu nối LCD SPI 2.8"</h2>
+ <p><strong>Tháo nguồn USB và nguồn ngoài trước khi đấu dây.</strong> Đây là sơ đồ GPIO <em>dự kiến của firmware</em>, không phải pinout đã được kiểm nghiệm trên module bạn đang cầm. Chân VCC/LED phải đọc datasheet hoặc nhãn board trước khi cấp điện.</p>
+ <div class="wiring-grid">
+  <div><h3>ESP32-S3 N16R8 ↔ LCD</h3><div id="wiringDiagram" class="wiring-diagram" aria-label="Sơ đồ GPIO dạng chữ"></div></div>
+  <div><h3>Bảng nối dây</h3><div class="table-scroll"><table><thead><tr><th>Chân LCD (có thể khác tên)</th><th>ESP32-S3</th><th>Ghi chú</th></tr></thead><tbody id="wiringRows"></tbody></table></div></div>
+ </div>
+ <div class="notice"><strong>Không nối LED/BL trực tiếp với GPIO21 theo suy đoán.</strong> Firmware hiện tại không điều khiển chân GPIO21. Tùy module, LED có thể cần nguồn qua điện trở/driver có sẵn. Cũng không đấu VCC vào 5V nếu module không xác nhận chấp nhận 5V.</div>
+ <h3>Kiểm tra khi nạp thành công nhưng màn hình không hiển thị</h3>
+ <ol class="troubleshoot">
+  <li><strong>Màn hình tối đen:</strong> kiểm tra nguồn VCC/GND và mạch backlight theo tài liệu module; dùng đồng hồ đo, không thử nối LED vào nguồn ngẫu nhiên.</li>
+  <li><strong>Đèn sáng nhưng màn hình trống:</strong> xác nhận IC ST7789V hay ILI9341, chân CS/DC/RST, SCK/MOSI và GND chung; kiểm tra lại đúng firmware đã flash.</li>
+  <li><strong>Hiển thị sai màu / lệch / xoay:</strong> gửi ảnh và log Serial; có thể phải hiệu chỉnh inversion, RGB/BGR, offset và rotation theo panel.</li>
+  <li><strong>Khởi động lại liên tục:</strong> ngắt nguồn, kiểm tra chập dây, dòng cấp và các thông báo lỗi trong Serial Monitor.</li>
+ </ol>
+ <p class="small">Touch XPT2046 (nếu module có): T_CS dự kiến GPIO9, T_IRQ dự kiến GPIO7, SPI dùng chung GPIO12/11/8. Touch <strong>chưa được bật trong firmware</strong>. Không phải mọi màn hình 2.8" đều có touch.</p>
+ <button type="button" id="goSerial">Mở Serial Monitor để chẩn đoán →</button>
+</section>
+<div id="serialTab" class="tabpanel" hidden>
   <section class="panel"><div class="heading"><div><div class="step">03</div><h2>Serial Monitor &amp; Boot Log</h2></div><span id="serialState" class="state" aria-live="polite">Chưa kết nối</span></div>
    <div class="controls"><label for="baud">Baud rate</label><select id="baud"><option value="115200">115200</option><option value="74880">74880</option><option value="921600">921600</option></select><button id="connect">Kết nối Serial</button><button id="disconnect" disabled>Ngắt kết nối</button><button id="clear">Xóa log</button></div>
    <pre id="log" role="log" aria-live="off">[ModESP32] Sẵn sàng nhận log qua USB.
@@ -59,6 +90,7 @@
    <button id="issue" class="primary" disabled>Mở bản nháp GitHub Issue ↗</button>
    <div id="reportStatus" class="status" aria-live="polite">Chưa gửi dữ liệu nào.</div>
   </section>
+</div>
   <footer>ModESP32 · Experimental build · Không flash nếu chưa xác minh phần cứng. <a href="https://github.com/YHresearcher/ModESP32/issues" target="_blank" rel="noopener">GitHub Issues</a></footer>
  </main>
  <script type="module" src="./app.js"></script>
