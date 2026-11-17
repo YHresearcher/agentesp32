@@ -30,9 +30,9 @@
       <label for="firmwareProfile">Chế độ firmware cho ST7789V</label>
       <select id="firmwareProfile">
         <option value="normal">XiaoZhi thường — bản màn hình đã hoạt động</option>
-        <option value="touch">Chibi AI v1.0 RC — ST7789V + XPT2046 (Development)</option>
+        <option value="touch">Chibi AI v1.1 Voice Preview — ST7789V + XPT2046 (Development)</option>
       </select>
-      <p class="small" id="touchProfileNotice">Chibi AI v1.0 RC: giao diện Chibi, nút TALK/VOL/SET, cảm ứng XPT2046. Development chưa được nghiệm thu trên phần cứng; giữ bản Touch cũ để khôi phục.</p>
+      <p class="small" id="touchProfileNotice">Chibi AI v1.1 Voice Preview: gương mặt Chibi dạng ảnh, không có nút dưới màn hình, đánh thức thử nghiệm bằng 'Hi ESP', cảm ứng XPT2046. Development chưa được nghiệm thu trên phần cứng; giữ bản Touch cũ để khôi phục.</p>
       <label for="firmwareSource">Nguồn firmware</label>
       <select id="firmwareSource">
         <option value="auto">Development – bản mới nhất từ GitHub</option>
@@ -85,9 +85,9 @@
    <div><h3>Bảng dây cảm ứng</h3><div class="table-scroll"><table><thead><tr><th>Touch</th><th>ESP32-S3</th><th>Lưu ý</th></tr></thead><tbody id="touchWiringRows"></tbody></table></div></div>
   </div>
   <h3>Quy trình kiểm tra 5 điểm</h3>
-  <p>Chọn <strong>Chibi AI v1.0 RC</strong> tại tab Flash sau khi dây đã kiểm tra, và lưu lại cấu hình Wi-Fi nếu cần. Đây là bản thử nghiệm: không đảm bảo hoạt động cho đến khi xác minh trực tiếp trên thiết bị.</p>
+  <p>Chọn <strong>Chibi AI v1.1 Voice Preview</strong> tại tab Flash sau khi dây đã kiểm tra, và lưu lại cấu hình Wi-Fi nếu cần. Đây là bản thử nghiệm: không đảm bảo hoạt động cho đến khi xác minh trực tiếp trên thiết bị.</p>
   <ol class="troubleshoot">
-   <li>Khởi động với Chibi AI v1.0 RC; xem Serial Monitor có <code>TOUCH_READY</code> hay <code>TOUCH_INIT_FAILED</code>.</li>
+   <li>Khởi động với Chibi AI v1.1 Voice Preview; xem Serial Monitor có <code>TOUCH_READY</code> hay <code>TOUCH_INIT_FAILED</code>.</li>
    <li>Chạm lần lượt <strong>trên trái, trên phải, giữa, dưới trái, dưới phải</strong>, mỗi lần giữ ngắn rồi thả. Bản thử nghiệm mới ghi nhận thao tác trên toàn màn hình, không yêu cầu chạm trúng vùng nút khi chưa hiệu chuẩn.</li>
    <li>Quan sát các dòng <code>TOUCH_SAMPLE x=... y=... irq=...</code>; kiểm tra tọa độ thay đổi có tương ứng với vị trí không.</li>
    <li>Ghi kết quả 5 điểm vào biểu mẫu phía dưới. Dữ liệu chỉ lưu tạm trong trình duyệt; không gửi tự động.</li>
