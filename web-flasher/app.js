@@ -179,7 +179,7 @@ $("firmwareProfile").addEventListener("change",()=>{
   currentProfile = selectedProfile();
   $("targetBoard").textContent = selectedBoard();
   $("touchProfileNotice").textContent = currentProfile === "st7789v-touch"
-    ? "CHIBI AI v1.0 RC: TALK / VOL / SET và XPT2046. Development chưa nghiệm thu phần cứng. Giữ firmware đã chạy ổn để khôi phục."
+    ? "Chibi AI v1.1 Voice Preview: chỉ hiển thị gương mặt, gọi thử bằng Hi ESP, BOOT là nút dự phòng. Development chưa nghiệm thu trên thiết bị; giữ firmware cũ để khôi phục."
     : "Chế độ thường dùng firmware ST7789V đã lên hình. Chỉ bật Touch Diagnostic sau khi kiểm tra nguồn và dây.";
   $("confirmBoard").checked = false;
   $("confirmHardware").checked = false;
