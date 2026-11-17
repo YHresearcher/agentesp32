@@ -1,3 +1,13 @@
+> [!IMPORTANT]
+> **REPOSITORY MOVED — DO NOT DEVELOP HERE.**
+> Firmware, Web Flasher frontend, Cloudflare Worker source, and CI pipelines
+> are now maintained in **[YHresearcher/ModESP32](https://github.com/YHresearcher/ModESP32)**.
+> The website **https://agentesp32.hlthanh1992.workers.dev/** remains active;
+> its name does not mean this legacy GitHub repository is required.
+> Use the [migration map](https://github.com/YHresearcher/ModESP32/blob/main/docs/REPOSITORY-CONSOLIDATION.md).
+> Keep this repository only as historical backup until the canonical website
+> deployment is verified; do not flash artifacts from old branches.
+>
 # An MCP-based Chatbot
 
 (English | [中文](README_zh.md) | [日本語](README_ja.md))
